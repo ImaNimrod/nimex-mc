@@ -2,17 +2,6 @@ const { SlashCommandBuilder } = require("discord.js");
 const Kit = require("../models/kitModel");
 const { Order, placeOrder } = require("../models/orderModel");
 
-async function getKitIdFromName(name) {
-    let kitId = null;
-
-    await Kit.findOne({
-        name: name,
-        inStock: true,
-    }).then((kit) => kitId = kit.kitId);
-
-    return kitId;
-}
-
 module.exports = {
     data: new SlashCommandBuilder()
     .setName("order")
@@ -36,63 +25,24 @@ module.exports = {
     async execute(interaction, client) {
         const kits = [];
 
-        const kit1Name = interaction.options.getString("kit1");
-        const kit2Name = interaction.options.getString("kit2");
-        const kit3Name = interaction.options.getString("kit3");
-        const kit4Name = interaction.options.getString("kit4");
+        let err = false;
 
-        let kitId = await getKitIdFromName(kit1Name);
-        if (!kitId) {
-            await interaction.reply({
-                content: `Invalid kit name: ${kit1Name}`,
-                ephemeral: true,
-            });
+        for (let i = 1; i < 4; i++) {
+            const kitName = interaction.options.getString("kit" + i.toString());
+            if (!kitName) continue;
 
-            return;
-        }
+            await Kit.findOne({ name: kitName })
+                .then((kit) => kits.push(kit.kitId))
+                .catch(async (_) => {
+                    await interaction.reply({
+                        content: `Kit **(name: __${kitName}__)** not found.`,
+                        ephemeral: true,
+                    });
 
-        kits.push(kitId);
-
-        if (kit2Name) {
-            let kitId = await getKitIdFromName(kit2Name);
-            if (!kitId) {
-                await interaction.reply({
-                    content: `Invalid kit name: ${kit2Name}`,
-                    ephemeral: true,
+                    err = true;
                 });
 
-                return;
-            }
-
-            kits.push(kitId);
-        }
-
-        if (kit3Name) {
-            let kitId = await getKitIdFromName(kit3Name);
-            if (!kitId) {
-                await interaction.reply({
-                    content: `Invalid kit name: ${kit3Name}`,
-                    ephemeral: true,
-                });
-
-                return;
-            }
-
-            kits.push(kitId);
-        }
-
-        if (kit4Name) {
-            let kitId = await getKitIdFromName(kit4Name);
-            if (!kitId) {
-                await interaction.reply({
-                    content: `Invalid kit name: ${kit4Name}`,
-                    ephemeral: true,
-                });
-
-                return;
-            }
-
-            kits.push(kitId);
+            if (err) return;
         }
 
         placeOrder(new Order(

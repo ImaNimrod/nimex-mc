@@ -13,22 +13,46 @@ module.exports = {
                                      .setRequired(true)),
 
     async execute(interaction, client) {
-        const kitName = interaction.options.getString("kit");
-        const inStock = interaction.options.getBoolean("in_stock");
-
-        await Kit.updateOne({name: interaction.options.getString("kit")}, {$set: {inStock: interaction.options.getBoolean("in_stock")}})
-            .then(async (updatedKit) => {
-                const embed = {
-                    title: "__Updated Kit:__",
-                    description: `Kit __**${kitName}**__ is now **${inStock ? "in" : "out of"} stock**`,
-                    color: 0xb78e60,
-                    footer: { text: "Nimrod Express" },
-                };
-
-                await interaction.reply({
-                    embeds: [embed],
-                    ephemeral: true,
-                });
+        const privledgedRole = await interaction.guild.roles.fetch(process.env.DISCORD_PRIVLEDGED_ROLE_ID.toString());
+        if (!interaction.member.roles.cache.has(privledgedRole.id)) {
+            await interaction.reply({
+                content: "You do not have permission to use this command.",
+                ephemeral: true,
             });
+            return;
+        }
+        
+        const kit = await Kit.findOne({name: interaction.options.getString("kit")});
+
+        if (!kit) {
+            await interaction.reply({
+                content: `Kit **(name: __${interaction.options.getString("kit")}__)** not found.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        kit.inStock = interaction.options.getBoolean("in_stock");
+
+        await kit.save()
+        .then(async (updatedKit) => {
+            const embed = {
+                title: "__Updated Kit:__",
+                description: `Kit **(name: __${updatedKit.name}__)** is now **${updatedKit.inStock ? "in" : "out of"} stock**`,
+                color: 0xb78e60,
+                footer: { text: "Nimrod Express" },
+            };
+
+            await interaction.reply({
+                embeds: [embed],
+                ephemeral: true,
+            });
+        })
+        .catch(async (_) => {
+            await interaction.reply({
+                content: "An internal error occured.",
+                ephemeral: true,
+            });
+        });
     }
 }
