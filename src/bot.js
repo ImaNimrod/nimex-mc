@@ -196,6 +196,7 @@ class Bot {
                     return;
                 }
 
+                await bot.waitForTicks(20);
                 for (const kit of this.currentOrder.kits) {
                     if (!await this.acquireKit(kit)) {
                         console.log(`WARNING: Kit (id: ${kit}) needs to be restocked`);
