@@ -1,21 +1,42 @@
 import { createBot, Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 
+import { collections } from "./mongo";
 import { getNextOrder, placeOrder, Order } from "./models/order";
 
 export default class Deliverer {
     private initialized: boolean = false;
     private stashChests: Vec3[] = [];
-    private currentOrder: Order | null = null;
+    private currentOrder?: Order;
     private servicingOrder: boolean = false;
     private orderReady: boolean = false;
     private tpaTimeoutCount: number = 0;
 
-    private bot: Bot | null = null;
+    private bot?: Bot;
 
-    public constructor(public readonly username: string, private readonly password: string) {}
+    constructor(public readonly username: string, public readonly password: string) {}
 
-    public async reset(dropItems: boolean) {
+    async acquireKit(kitId: string): Promise<boolean> {
+        for (const chest of this.stashChests) {
+            const openedChest = await this.bot!.openContainer(await this.bot!.world.getBlock(chest));
+
+            for (const item of openedChest.containerItems()) {
+                if (!item.name.includes("shulker_box") || !item.customName) continue;
+
+                if (item.customName.includes(kitId)) {
+                    await openedChest.withdraw(item.type, null, null);
+                    openedChest.close();
+                    return true;
+                }
+            }
+ 
+            openedChest.close();
+        }
+
+        return false;
+    }
+
+    async reset(dropItems: boolean) {
         if (dropItems) {
             for (const item of this.bot!.inventory.slots) {
                 if (!item) continue;
@@ -23,13 +44,15 @@ export default class Deliverer {
             }
         }
 
-        this.currentOrder = null;
+        this.currentOrder = undefined;
         this.servicingOrder = false;
         this.orderReady = false;
         this.tpaTimeoutCount = 0;
     }
 
     public start() {
+        console.log(`starting bot ${this.username}...`);
+
         const bot: Bot = createBot({
             username: this.username,
             skipValidation: true,
@@ -63,13 +86,17 @@ export default class Deliverer {
             inLobby = false;
         }
 
+        bot.once("login", () => {
+            bot.chat("/register " + this.password);
+            bot.chat("/login " + this.password);
+        });
+
         bot.once("spawn", async () => {
             bot.addChatPattern("tpaDenied", /.*was denied!$/);
             bot.addChatPattern("tpaFail", /Player not found!/);
+            bot.addChatPattern("tpaSent", /Request sent to.*/);
             bot.addChatPattern("tpaSuccess", /Teleported to.*/);
             bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
-
-            bot.chat("/login " + this.password);
 
             let lobbyCount: number = 0;
 
@@ -98,10 +125,7 @@ export default class Deliverer {
             bot.controlState.forward = false;
             bot.controlState.back = false;
 
-            console.log(bot.entity.position);
-
             await bot.waitForTicks(20);
-            bot.chat("/tpy QuantumPapaya");
 
             this.stashChests = bot.findBlocks({
                 matching: bot.registry.blocksByName["trapped_chest"].id,
@@ -109,12 +133,12 @@ export default class Deliverer {
             });
 
             if (!this.stashChests.length) {
-                console.error(`ERROR: mc bot ${this.username} unable to find stash chests`);
+                console.error(`ERROR: bot ${this.username} unable to find stash chests`);
                 this.stop()
                 return;
             }
 
-            console.log(`mc bot ${this.username} initialized`);
+            console.log(`initialized bot ${this.username}`);
             this.initialized = true;
         });
 
@@ -122,15 +146,32 @@ export default class Deliverer {
             this.reset(false);
         });
 
+        bot.on("kicked", (err) => {
+            console.log(`WARNING: bot ${this.username} kicked: ${err}`);
+            bot.end("kicked");
+        });
+
+        bot.on("end", (reason) => {
+            if (reason == "kicked") {
+                bot.removeAllListeners();
+                setTimeout(this.start, 5000);
+            }
+        });
+
         // @ts-ignore
         bot.on("chat:tpaDenied", async () => {
             bot.chat(`/msg ${this.currentOrder!.minecraftUsername} You canceled your order last minute. Be better.`)
-            await this.reset(true);
+            this.reset(true);
         });
 
         // @ts-ignore
         bot.on("chat:tpaFail", async () => {
-            await this.reset(true);
+            this.reset(true);
+        });
+
+        // @ts-ignore
+        bot.on("chat:tpaSent", () => {
+            this.orderReady = false;
         });
 
         // @ts-ignore
@@ -173,17 +214,15 @@ export default class Deliverer {
                     return;
                 }
 
-                /*
                 await bot.waitForTicks(20);
-                for (const kit of this.currentOrder!.kits) {
-                    if (!await this.acquireKit(kit)) {
-                        console.log(`WARNING: Kit (id: ${kit}) needs to be restocked`);
-                        await Kit.updateOne({kitId: kit}, {$set: {inStock: false}});
+                for (const kitId of this.currentOrder!.kits) {
+                    if (!await this.acquireKit(kitId)) {
+                        await collections.kits!.updateOne({kitId: kitId}, {$set: {inStock: false}});
+                        console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
                         this.reset(true);
                         return;
                     }
                 }
-                */
 
                 bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
                 this.orderReady = true;
@@ -192,7 +231,8 @@ export default class Deliverer {
     }
 
     public stop() {
-        this.bot!.quit();
-        this.bot = null;
+        console.log(`stopping bot ${this.username}`);
+        this.bot!.end("stop");
+        this.bot = undefined;
     }
 }

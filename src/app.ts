@@ -1,17 +1,13 @@
-import { Client, Collection, GatewayIntentBits, IntentsBitField } from "discord.js";
 import * as dotenv from "dotenv";
-import * as mongoose from "mongoose";
+
+import DiscordClient from "./client";
 import Deliverer from "./deliverer";
+import loadEvents from "./handlers/eventHandler";
+import connectToDatabase from "./mongo";
 
 dotenv.config();
 
-const client: Client = new Client({
-    intents: [
-        IntentsBitField.Flags.GuildMembers,
-        IntentsBitField.Flags.GuildMessages,
-        IntentsBitField.Flags.MessageContent,
-    ],
-});
+const client: DiscordClient = new DiscordClient();
 
 const deliverer: Deliverer = new Deliverer(
     process.env.MC_USERNAME!,
@@ -19,9 +15,9 @@ const deliverer: Deliverer = new Deliverer(
 );
 
 (async () => {
-    mongoose.set("strictQuery", false);
-    await mongoose.connect(process.env.MONGODB_URI!);
+    await connectToDatabase(process.env.MONGODB_URI!, process.env.MONGODB_DB_NAME!);
 
+    await client.deployCommands();
     client.login(process.env.DISCORD_TOKEN!);
 
     deliverer.start();
