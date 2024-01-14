@@ -3,17 +3,19 @@
     "target": "es2016",
     "module": "commonjs",
     "rootDir": "./src",
-    "outDir": "./build",
+    "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
     "skipLibCheck": true
   },
-  "include": [
-    "./**/*.ts"
-  ],
   "exclude": [
-    "node_modules",
-    "build"
-  ],
+    "node_modules"
+  ]
 }
+

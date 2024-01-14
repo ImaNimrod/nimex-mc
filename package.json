@@ -2,8 +2,13 @@
   "name": "nimex-mc",
   "version": "1.0.0",
   "description": "A fully automated kit delivery service for 6b6t",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "npx tsc && node build/app.js"
+    "test": "npx tsc && node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ImaNimrod/nimex-mc"
   },
   "author": "nimrod",
   "license": "ISC",

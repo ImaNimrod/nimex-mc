@@ -1,20 +1,41 @@
+import { Client, IntentsBitField } from "discord.js";
 import { createBot, Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 
-import { collections } from "./mongo";
+import Config from "./config";
+import loadCommands from "./handlers/commandHandler";
+import loadEvents from "./handlers/eventHandler";
 import { getNextOrder, placeOrder, Order } from "./models/order";
+import { collections } from "./mongo";
 
-export default class Deliverer {
-    private initialized: boolean = false;
-    private stashChests: Vec3[] = [];
-    private currentOrder?: Order;
-    private servicingOrder: boolean = false;
-    private orderReady: boolean = false;
-    private tpaTimeoutCount: number = 0;
+export default class Deliverer extends Client {
+    readonly config: Config;
 
-    private bot?: Bot;
+    commands = loadCommands(this);
+    events = loadEvents(this);
 
-    constructor(public readonly username: string, public readonly password: string) {}
+    initialized: boolean = false;
+    stashChests: Vec3[] = [];
+    currentOrder?: Order;
+    servicingOrder: boolean = false;
+    orderReady: boolean = false;
+    tpaTimeoutCount: number = 0;
+
+    bot?: Bot;
+
+    constructor(config: Config) {
+        super({
+            intents: [
+                IntentsBitField.Flags.Guilds,
+                IntentsBitField.Flags.GuildMembers,
+                IntentsBitField.Flags.GuildMessages,
+                IntentsBitField.Flags.MessageContent,
+            ],
+        });
+
+        this.config = config;
+        this.login(config.discordToken);
+    }
 
     async acquireKit(kitId: string): Promise<boolean> {
         for (const chest of this.stashChests) {
@@ -51,79 +72,39 @@ export default class Deliverer {
     }
 
     public start() {
-        console.log(`starting bot ${this.username}...`);
+        console.log("starting mc bot...");
 
         const bot: Bot = createBot({
-            username: this.username,
+            username: this.config.minecraftUsername,
             skipValidation: true,
             version: "1.19.4",
             host: "6b6t.org",
+            checkTimeoutInterval: 9999999,
         });
 
         this.bot = bot;
 
-        let inLobby: boolean = false;
-
-        async function leaveLobby() {
-            inLobby = true;
-
-            bot.controlState.forward = true;
-            await bot.waitForTicks(40);
-            bot.controlState.forward = false;
+        bot.once("spawn", async () => {
+            bot.chat("/register " + this.config.minecraftPassword);
+            await bot.waitForTicks(2);
+            bot.chat("/login " + this.config.minecraftPassword);
 
             while (bot?.game?.difficulty == "peaceful") {
-                bot.controlState.back = true;
+                bot.setControlState("forward", true);
                 await bot.waitForTicks(20);
-                bot.controlState.back = false;
-
-                if (bot?.game?.difficulty == "peaceful") break;
-
-                bot.controlState.forward = true;
-                await bot.waitForTicks(30);
-                bot.controlState.forward = false;
+                bot.setControlState("forward", false);
             }
 
-            inLobby = false;
-        }
-
-        bot.once("login", () => {
-            bot.chat("/register " + this.password);
-            bot.chat("/login " + this.password);
-        });
-
-        bot.once("spawn", async () => {
             bot.addChatPattern("tpaDenied", /.*was denied!$/);
             bot.addChatPattern("tpaFail", /Player not found!/);
             bot.addChatPattern("tpaSent", /Request sent to.*/);
             bot.addChatPattern("tpaSuccess", /Teleported to.*/);
             bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
-
-            let lobbyCount: number = 0;
-
-            while (true) {
-                await bot.waitForTicks(20);
-
-                if (lobbyCount > 30) {
-                    this.stop()
-                    break;
-                }
-
-                if (!bot.entity.position) continue;
-
-                if (bot?.game?.difficulty != "hard") {
-                    if (!inLobby) leaveLobby();
-                    lobbyCount++;
-                }
-            }
         });
 
         bot.on("spawn", async () => {
             if (bot?.game?.difficulty == "peaceful") return;
-
             if (this.initialized) return;
-
-            bot.controlState.forward = false;
-            bot.controlState.back = false;
 
             await bot.waitForTicks(20);
 
@@ -133,12 +114,12 @@ export default class Deliverer {
             });
 
             if (!this.stashChests.length) {
-                console.error(`ERROR: bot ${this.username} unable to find stash chests`);
+                console.error(`ERROR: mc bot unable to find stash chests`);
                 this.stop()
                 return;
             }
 
-            console.log(`initialized bot ${this.username}`);
+            console.log("mc bot initialized");
             this.initialized = true;
         });
 
@@ -146,13 +127,13 @@ export default class Deliverer {
             this.reset(false);
         });
 
-        bot.on("kicked", (err) => {
-            console.log(`WARNING: bot ${this.username} kicked: ${err}`);
-            bot.end("kicked");
+        bot.on("kicked", () => {
+            bot.end("kick");
         });
 
         bot.on("end", (reason) => {
-            if (reason == "kicked") {
+            if (reason == "kick") {
+                console.log("mc bot kicked... rejoining server in 5s");
                 bot.removeAllListeners();
                 setTimeout(this.start, 5000);
             }
@@ -231,7 +212,7 @@ export default class Deliverer {
     }
 
     public stop() {
-        console.log(`stopping bot ${this.username}`);
+        console.log("stopping mc bot");
         this.bot!.end("stop");
         this.bot = undefined;
     }
