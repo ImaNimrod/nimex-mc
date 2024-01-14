@@ -1,4 +1,3 @@
-const { REST, Routes } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 
@@ -17,19 +16,5 @@ module.exports = (client) => {
             client.commands.set(command.data.name, command);
             client.commandArray.push(command.data.toJSON());
         }
-
-        const rest = new REST({version: "10"}).setToken(process.env.DISCORD_TOKEN);
-
-        (async () => {
-            await rest.put(
-                Routes.applicationGuildCommands(
-                    process.env.DISCORD_CLIENT_ID,
-                    process.env.DISCORD_GUILD_ID,
-                ),
-                { body: client.commandArray }
-            );
-
-            console.log("discord slash commands registered");
-        })();
     };
 };
