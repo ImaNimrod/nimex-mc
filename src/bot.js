@@ -59,6 +59,8 @@ class Bot {
             skipValidation: true,
             version: "1.19.4",
             host: "6b6t.org",
+            checkTimeoutInterval: 9999999,
+            disableChatSigning: true,
         });
 
         this.bot = bot;
@@ -95,6 +97,7 @@ class Bot {
 
             bot.addChatPattern("tpaDenied", /.*was denied!$/);
             bot.addChatPattern("tpaFail", /Player not found!/);
+            bot.addChatPattern("tpaSent", /Request sent to.*/);
             bot.addChatPattern("tpaSuccess", /Teleported to.*/);
             bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
 
@@ -156,6 +159,10 @@ class Bot {
 
         bot.on("chat:tpaFail", async () => {
             this.reset(true);
+        });
+
+        bot.on("chat:tpaSent", () => {
+            this.orderReady = false;
         });
 
         bot.on("chat:tpaSuccess", async () => {

@@ -1,4 +1,4 @@
-const { Client, Collection, GatewayIntentBits, IntentsBitField } = require("discord.js");
+const { Client, Collection, IntentsBitField } = require("discord.js");
 const mongoose = require("mongoose");
 const Bot = require("./bot");
 
@@ -6,6 +6,7 @@ require("dotenv").config();
 
 const client = new Client({
     intents: [
+        IntentsBitField.Flags.Guilds,
         IntentsBitField.Flags.GuildMembers,
         IntentsBitField.Flags.GuildMessages,
         IntentsBitField.Flags.MessageContent,
@@ -15,8 +16,8 @@ const client = new Client({
 client.commands = new Collection();
 
 const bot = new Bot(
-    process.env.MC_USERNAME,
-    process.env.MC_PASSWORD,
+    process.env.MINECRAFT_USERNAME,
+    process.env.MINECRAFT_PASSWORD,
 );
 
 (async () => {
