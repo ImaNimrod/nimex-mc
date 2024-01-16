@@ -5,7 +5,7 @@ import { Vec3 } from "vec3";
 import Config from "./config";
 import loadCommands from "./handlers/commandHandler";
 import loadEvents from "./handlers/eventHandler";
-import { getNextOrder, placeOrder, Order } from "./models/order";
+import Order, { getNextOrder, placeOrder } from "./models/order";
 import { collections } from "./mongo";
 
 export default class Deliverer extends Client {
@@ -119,7 +119,7 @@ export default class Deliverer extends Client {
                 return;
             }
 
-            console.log("mc bot initialized");
+            console.log(`mc bot ${this.config.minecraftUsername} initialized`);
             this.initialized = true;
         });
 
@@ -127,15 +127,23 @@ export default class Deliverer extends Client {
             this.reset(false);
         });
 
+        bot.on("error", (err) => {
+            console.error("ERROR: " + err);
+            bot.end("error");
+        });
+
         bot.on("kicked", () => {
             bot.end("kick");
         });
 
         bot.on("end", (reason) => {
+            bot.removeAllListeners();
+
             if (reason == "kick") {
                 console.log("mc bot kicked... rejoining server in 5s");
-                bot.removeAllListeners();
                 setTimeout(this.start, 5000);
+            } else {
+                console.error("ERROR: mc bot ended unexpectedly");
             }
         });
 

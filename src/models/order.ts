@@ -1,8 +1,7 @@
-export class Order {
-    constructor(
-        public readonly discordUsername: string,
-        public readonly minecraftUsername: string,
-        public readonly kits: string[]) {}
+export default interface Order {
+    discordUsername: string,
+    minecraftUsername: string,
+    kits: string[],
 }
 
 const orders: Order[] = [];

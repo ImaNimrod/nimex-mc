@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 
 export default interface Config {
-    discordPrivledgedRoleId: string,
+    discordPrivledgedUsernames: string[],
     discordToken: string,
     minecraftUsername: string,
     minecraftPassword: string,
@@ -12,7 +12,7 @@ export function loadFromEnv(): Config {
     dotenv.config();
 
     return {
-        discordPrivledgedRoleId: process.env.DISCORD_PRIVLEDGED_ROLE_ID!,
+        discordPrivledgedUsernames: process.env.DISCORD_PRIVLEDGED_USERNAMES!.split(" "),
         discordToken: process.env.DISCORD_TOKEN!,
         minecraftUsername: process.env.MINECRAFT_USERNAME!,
         minecraftPassword: process.env.MINECRAFT_PASSWORD!,

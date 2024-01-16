@@ -1,22 +1,20 @@
-import { CommandInteraction, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 
-import { getOrders, Order } from "../models/order";
+import Order, { getOrders } from "../models/order";
 import Command from "../structs/command";
 
 export default class ListOrders extends Command {
     name = "list_orders";
     description = "Lists the pending kit orders";
 
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const fields: any = [];
-
         const orders: Order[] = getOrders();
         if (!orders?.length) {
             await interaction.reply({
                 content: "No pending orders.",
                 ephemeral: true,
             });
-
             return;
         }
 
@@ -25,15 +23,15 @@ export default class ListOrders extends Command {
             value: o.kits.join(", "),
         }));
 
-        const embed = new EmbedBuilder()
-            .setTitle("__Pending Orders:__")
-            .addFields(fields)
-            .setColor(0xb78e60)
-            .setTimestamp()
-            .setFooter({ text: "Nimrod Express" });
-
         await interaction.reply({
-            embeds: [embed],
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle("__Pending Orders:__")
+                    .addFields(fields)
+                    .setColor(0xb78e60)
+                    .setTimestamp()
+                    .setFooter({ text: "Nimrod Express" }),
+            ],
             ephemeral: true,
         });
     }

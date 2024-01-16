@@ -9,6 +9,18 @@ export default class InteractionCreate extends Event {
         if (!interaction.isChatInputCommand()) return;
 
         const command = this.client.commands.get(interaction.commandName);
-        return command!.execute(interaction);
+        if (!command) return;
+
+        try {
+            await command!.execute(interaction);
+        } catch (err) {
+            console.error(err);
+
+            await interaction.reply({
+                content: "An error occured while executing this command.",
+                ephemeral: true,
+            });
+        }
     }
 }
+
