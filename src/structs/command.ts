@@ -13,15 +13,15 @@ export default abstract class Command {
         this.client = client;
     }
 
-    abstract execute(interaction: ChatInputCommandInteraction): any;
+    abstract execute(interaction: ChatInputCommandInteraction): void | Promise<void>;
 
-	toJSON(): RESTPostAPIApplicationCommandsJSONBody {
-		const command = new SlashCommandBuilder()
-			.setName(this.name)
-			.setDescription(this.description)
+    toJSON(): RESTPostAPIApplicationCommandsJSONBody {
+        const command = new SlashCommandBuilder()
+            .setName(this.name)
+            .setDescription(this.description)
 
-		this.options.forEach((o) => command.options.push);
+        this.options.forEach((o) => command.options.push(o));
 
-		return command.toJSON();
-	}
+        return command.toJSON();
+    }
 }

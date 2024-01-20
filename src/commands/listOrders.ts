@@ -8,6 +8,14 @@ export default class ListOrders extends Command {
     description = "Lists the pending kit orders";
 
     async execute(interaction: ChatInputCommandInteraction) {
+        if (!this.client.config.discordPrivledgedUsernames.includes(interaction.user.username)) {
+            await interaction.reply({
+                content: "You do not have permission to use this command.",
+                ephemeral: true,
+            });
+            return;
+        }
+
         const fields: any = [];
         const orders: Order[] = getOrders();
         if (!orders?.length) {

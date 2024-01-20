@@ -72,8 +72,6 @@ export default class Deliverer extends Client {
     }
 
     public start() {
-        console.log("starting mc bot...");
-
         const bot: Bot = createBot({
             username: this.config.minecraftUsername,
             skipValidation: true,
@@ -119,7 +117,7 @@ export default class Deliverer extends Client {
                 return;
             }
 
-            console.log(`mc bot ${this.config.minecraftUsername} initialized`);
+            console.log(`mc bot (${this.config.minecraftUsername}) initialized`);
             this.initialized = true;
         });
 
