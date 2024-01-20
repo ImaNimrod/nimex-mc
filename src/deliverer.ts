@@ -147,7 +147,7 @@ export default class Deliverer extends Client {
 
         // @ts-ignore
         bot.on("chat:tpaDenied", async () => {
-            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} You canceled your order last minute. Be better.`)
+            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} You canceled your order last minute. Be better.`);
             this.reset(true);
         });
 
@@ -158,13 +158,14 @@ export default class Deliverer extends Client {
 
         // @ts-ignore
         bot.on("chat:tpaSent", () => {
+            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Your order is out for delivery. Please accept the tpa request.`);
             this.orderReady = false;
         });
 
         // @ts-ignore
         bot.on("chat:tpaSuccess", async () => {
             await bot.waitForTicks(20);
-            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Please kill me to receive your order.`)
+            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Please kill me to receive your order.`);
         });
 
         // @ts-ignore
@@ -204,7 +205,13 @@ export default class Deliverer extends Client {
                 await bot.waitForTicks(20);
                 for (const kitId of this.currentOrder!.kits) {
                     if (!await this.acquireKit(kitId)) {
-                        await collections.kits!.updateOne({kitId: kitId}, {$set: {inStock: false}});
+                        await collections.kits!.updateOne(
+                            { kitId: kitId },
+                            { $set: {
+                                inStock: false 
+                            }}
+                        );
+
                         console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
                         this.reset(true);
                         return;
