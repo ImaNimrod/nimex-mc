@@ -5,25 +5,22 @@ import { Vec3 } from "vec3";
 import Config from "./config";
 import loadCommands from "./handlers/commandHandler";
 import loadEvents from "./handlers/eventHandler";
-import Order, { getNextOrder, placeOrder } from "./models/order";
-import { collections } from "./mongo";
+import OrderModel from "./models/order";
+import { getCollections } from "./mongo";
 
 export default class Deliverer extends Client {
-    readonly config: Config;
-
     commands = loadCommands(this);
     events = loadEvents(this);
 
     initialized: boolean = false;
     stashChests: Vec3[] = [];
-    currentOrder?: Order;
+    currentOrder: OrderModel | null = null;
     servicingOrder: boolean = false;
     orderReady: boolean = false;
-    tpaTimeoutCount: number = 0;
 
-    bot?: Bot;
+    bot: Bot | null = null;
 
-    constructor(config: Config) {
+    constructor(readonly config: Config) {
         super({
             intents: [
                 IntentsBitField.Flags.Guilds,
@@ -33,7 +30,6 @@ export default class Deliverer extends Client {
             ],
         });
 
-        this.config = config;
         this.login(config.discordToken);
     }
 
@@ -57,21 +53,20 @@ export default class Deliverer extends Client {
         return false;
     }
 
-    async reset(dropItems: boolean) {
-        if (dropItems) {
-            for (const item of this.bot!.inventory.slots) {
-                if (!item) continue;
-                await this.bot!.tossStack(item);
-            }
+    async dropInventory() {
+        for (const item of this.bot!.inventory.slots) {
+            if (!item) continue;
+            await this.bot!.tossStack(item);
         }
-
-        this.currentOrder = undefined;
-        this.servicingOrder = false;
-        this.orderReady = false;
-        this.tpaTimeoutCount = 0;
     }
 
-    public start() {
+    reset() {
+        this.currentOrder = null;
+        this.servicingOrder = false;
+        this.orderReady = false;
+    }
+
+    start() {
         const bot: Bot = createBot({
             username: this.config.minecraftUsername,
             skipValidation: true,
@@ -87,7 +82,7 @@ export default class Deliverer extends Client {
             await bot.waitForTicks(2);
             bot.chat("/login " + this.config.minecraftPassword);
 
-            while (bot?.game?.difficulty == "peaceful") {
+            while (bot.game?.difficulty == "peaceful") {
                 bot.setControlState("forward", true);
                 await bot.waitForTicks(20);
                 bot.setControlState("forward", false);
@@ -101,7 +96,7 @@ export default class Deliverer extends Client {
         });
 
         bot.on("spawn", async () => {
-            if (bot?.game?.difficulty == "peaceful") return;
+            if (bot.game?.difficulty == "peaceful") return;
             if (this.initialized) return;
 
             await bot.waitForTicks(20);
@@ -121,8 +116,15 @@ export default class Deliverer extends Client {
             this.initialized = true;
         });
 
-        bot.on("death", () => {
-            this.reset(false);
+        bot.on("death", async () => {
+            if (this.currentOrder && this.servicingOrder) {
+                await getCollections().orders.updateOne(
+                    { discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt },
+                    { $set: { delivered: true, deliveredAt: new Date() }},
+                );
+
+                this.reset();
+            }
         });
 
         bot.on("error", (err) => {
@@ -137,47 +139,62 @@ export default class Deliverer extends Client {
         bot.on("end", (reason) => {
             bot.removeAllListeners();
 
+            this.bot = null;
+            this.initialized = false;
+
             if (reason == "kick") {
                 console.log("mc bot kicked... rejoining server in 5s");
                 setTimeout(this.start, 5000);
             } else {
-                console.error("ERROR: mc bot ended unexpectedly");
+                console.error("ERROR: mc bot ended unexpectedly... restarting in 5s");
+                setTimeout(this.start, 5000);
             }
         });
 
         // @ts-ignore
         bot.on("chat:tpaDenied", async () => {
-            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} You canceled your order last minute. Be better.`);
-            this.reset(true);
+            if (this.currentOrder && this.servicingOrder) {
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} You canceled your order last minute. Be better.`);
+                await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
+                await this.dropInventory();
+                this.reset();
+            }
         });
 
         // @ts-ignore
         bot.on("chat:tpaFail", async () => {
-            this.reset(true);
+            if (this.currentOrder && this.servicingOrder) {
+                await this.dropInventory();
+                this.reset();
+            }
         });
 
         // @ts-ignore
         bot.on("chat:tpaSent", () => {
-            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Your order is out for delivery. Please accept the tpa request.`);
-            this.orderReady = false;
+            if (this.currentOrder && this.servicingOrder) {
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is out for delivery. Please accept the tpa request.`);
+                this.orderReady = false;
+            }
         });
 
         // @ts-ignore
         bot.on("chat:tpaSuccess", async () => {
-            await bot.waitForTicks(20);
-            bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Please kill me to receive your order.`);
+            if (this.currentOrder && this.servicingOrder) {
+                console.log("order delivered");
+
+                await bot.waitForTicks(20);
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`);
+            }
         });
 
         // @ts-ignore
         bot.on("chat:tpaTimeout", async () => {
             if (this.currentOrder && this.servicingOrder) {
-                if (this.tpaTimeoutCount++ >= 3) {
-                    bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
-                    this.reset(true);
-                    return;
-                }
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
 
-                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please accept the tpa request for your delivery.`);
+                await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
+                await this.dropInventory();
+                this.reset();
             }
         });
 
@@ -185,48 +202,51 @@ export default class Deliverer extends Client {
             if (!this.initialized) return;
 
             if (this.currentOrder && this.orderReady) {
-                bot.chat(`/tpa ${this.currentOrder!.minecraftUsername}`);
+                bot.chat(`/tpa ${this.currentOrder.minecraftUsername}`);
                 return;
             }
 
             if (this.servicingOrder) return;
 
-            if (this.currentOrder = getNextOrder()) {
+            const nextOrder: OrderModel | null = await getCollections().orders.findOne({ delivered: false });
+            if (this.currentOrder = nextOrder) {
                 this.servicingOrder = true;
 
-                if (!bot.players[this.currentOrder!.minecraftUsername]) {
-                    console.log(`${this.currentOrder!.minecraftUsername} is not online, defering order`);
+                console.log("began servicing new order");
 
-                    placeOrder(this.currentOrder!);
-                    this.reset(false);
+                if (!bot.players[this.currentOrder.minecraftUsername]) {
+                    console.log(`${this.currentOrder.minecraftUsername} is not online, discarding order`);
+
+                    await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
+                    this.reset();
                     return;
                 }
 
                 await bot.waitForTicks(20);
-                for (const kitId of this.currentOrder!.kits) {
+                for (const kitId of this.currentOrder.kitIds) {
                     if (!await this.acquireKit(kitId)) {
-                        await collections.kits!.updateOne(
+                        await getCollections().kits.updateOne(
                             { kitId: kitId },
-                            { $set: {
-                                inStock: false 
-                            }}
+                            { $set: { inStock: false }},
                         );
 
                         console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
-                        this.reset(true);
+
+                        await this.dropInventory();
+                        this.reset();
                         return;
                     }
                 }
 
-                bot.chat(`/msg ${this.currentOrder!.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
                 this.orderReady = true;
             }
         });
     }
 
-    public stop() {
+    stop() {
         console.log("stopping mc bot");
         this.bot!.end("stop");
-        this.bot = undefined;
+        this.bot = null;
     }
 }

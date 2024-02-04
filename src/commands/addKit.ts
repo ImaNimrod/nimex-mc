@@ -1,8 +1,8 @@
 import { SlashCommandStringOption } from "@discordjs/builders";
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 
-import Kit from "../models/kit";
-import { collections } from "../mongo";
+import KitModel from "../models/kit";
+import { getCollections } from "../mongo";
 import Command from "../structs/command";
 
 export default class AddKit extends Command {
@@ -32,7 +32,7 @@ export default class AddKit extends Command {
             return;
         }
 
-        const newKit: Kit = {
+        const kit: KitModel = {
             name: interaction.options.getString("name")!,
             description: interaction.options.getString("description")!,
             kitId: interaction.options.getString("kit_id")!,
@@ -40,16 +40,16 @@ export default class AddKit extends Command {
             createdAt: new Date(),
         };
 
-        await collections.kits!.insertOne(newKit);
+        await getCollections().kits.insertOne(kit);
 
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
                     .setTitle("__Kit Added:__")
                     .addFields(
-                        { name: "__Name:__", value: newKit.name },
-                        { name: "__Description:__", value: newKit.description },
-                        { name: "__Kit ID:__", value: newKit.kitId },
+                        { name: "__Name:__", value: kit.name },
+                        { name: "__Description:__", value: kit.description },
+                        { name: "__Kit ID:__", value: kit.kitId },
                     )
                     .setColor(0xb78e60)
                     .setTimestamp()

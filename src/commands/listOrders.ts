@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 
-import Order, { getOrders } from "../models/order";
+import { getCollections } from "../mongo";
 import Command from "../structs/command";
 
 export default class ListOrders extends Command {
@@ -16,20 +16,23 @@ export default class ListOrders extends Command {
             return;
         }
 
-        const fields: any = [];
-        const orders: Order[] = getOrders();
-        if (!orders?.length) {
+        const orders = await getCollections().orders.find({ delivered: false }).toArray();
+        if (orders.length == 0) {
             await interaction.reply({
-                content: "No pending orders.",
+                content: "No currently pending orders.",
                 ephemeral: true,
             });
             return;
         }
 
-        orders.forEach((o) => fields.push({
-            name: `__${o.discordUsername}__ placed an order for __${o.minecraftUsername}__`,
-            value: o.kits.join(", "),
-        }));
+        const fields: any = [];
+
+        for (const order of orders) {
+            fields.push({
+                name: `__${order.discordUsername}__ placed an order for __${order.minecraftUsername}__`,
+                value: order.kitIds.join(", "),
+            });
+        }
 
         await interaction.reply({
             embeds: [

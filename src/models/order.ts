@@ -1,19 +1,11 @@
-export default interface Order {
+import { ObjectId } from "mongodb";
+
+export default interface OrderModel {
+    id?: ObjectId,
     discordUsername: string,
     minecraftUsername: string,
-    kits: string[],
-}
-
-const orders: Order[] = [];
-
-export function getNextOrder(): Order | undefined {
-    return orders.shift();
-}
-
-export function getOrders(): Order[] {
-    return orders;
-}
-
-export function placeOrder(order: Order) {
-    orders.push(order);
+    kitIds: string[],
+    delivered: boolean,
+    createdAt: Date,
+    deliveredAt?: Date,
 }

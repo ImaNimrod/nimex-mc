@@ -4,13 +4,13 @@ import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { getCollections } from "../mongo";
 import Command from "../structs/command";
 
-export default class DeleteKit extends Command {
-    name = "delete_kit";
-    description = "Removes a kit from the Nimrod Express' kit stock";
+export default class Help extends Command {
+    name = "discard_order";
+    description = "Skips over and deletes a pending order.";
     options = [
         new SlashCommandStringOption()
-            .setName("name")
-            .setDescription("The display name of the kit")
+            .setName("order_username")
+            .setDescription("The discord username of pending order")
             .setRequired(true),
     ];
 
@@ -23,15 +23,24 @@ export default class DeleteKit extends Command {
             return;
         }
 
-        const kitName: string = interaction.options.getString("name")!;
-        const result = await getCollections().kits.deleteOne({ name: kitName });
+        const orderDiscordUsername: string = interaction.options.getString("order_username")!;
+
+        const result = await getCollections().orders.deleteOne({
+            delivered: false,
+            discordUsername: orderDiscordUsername
+        });
 
         if (result && result.deletedCount) {
+            if (orderDiscordUsername == this.client.currentOrder?.discordUsername) {
+                await this.client.dropInventory();
+                this.client.reset();
+            }
+
             await interaction.reply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("__Kit Deleted:__")
-                        .setDescription(`Kit **(name: __${kitName}__)** removed from the stock`)
+                        .setTitle("__Order Skipped:__")
+                        .setDescription(`Pending order from **__${orderDiscordUsername}__** skipped and removed.`)
                         .setColor(0xb78e60)
                         .setTimestamp()
                         .setFooter({ text: "Nimrod Express" }),
@@ -40,12 +49,12 @@ export default class DeleteKit extends Command {
             });
         } else if (!result) {
             await interaction.reply({
-                content: "Failed to remove kit.",
+                content: "Failed to remove pending order.",
                 ephemeral: true,
             });
         } else if (!result.deletedCount) {
             await interaction.reply({
-                content: `Kit **(name: __${kitName}__)** not found.`,
+                content: `No pending order from **__${orderDiscordUsername}__** found.`,
                 ephemeral: true,
             });
         }

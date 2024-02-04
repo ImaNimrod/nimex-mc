@@ -1,6 +1,6 @@
 import Config, { loadFromEnv } from "./config";
 import Deliverer from "./deliverer";
-import connectToDatabase from "./mongo";
+import { connectToDatabase } from "./mongo";
 
 const config: Config = loadFromEnv();
 

@@ -6,6 +6,7 @@ export default interface Config {
     minecraftUsername: string,
     minecraftPassword: string,
     mongodbURI: string,
+    orderCooldown: number,
 }
 
 export function loadFromEnv(): Config {
@@ -17,6 +18,7 @@ export function loadFromEnv(): Config {
         minecraftUsername: process.env.MINECRAFT_USERNAME!,
         minecraftPassword: process.env.MINECRAFT_PASSWORD!,
         mongodbURI: process.env.MONGODB_URI!,
+        orderCooldown: Number(process.env.ORDER_COOLDOWN!),
     };
 }
 
