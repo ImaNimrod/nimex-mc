@@ -4,7 +4,7 @@ import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { getCollections } from "../mongo";
 import Command from "../structs/command";
 
-export default class Help extends Command {
+export default class DiscardOrder extends Command {
     name = "discard_order";
     description = "Skips over and deletes a pending order.";
     options = [
