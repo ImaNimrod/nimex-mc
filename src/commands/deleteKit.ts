@@ -23,7 +23,7 @@ export default class DeleteKit extends Command {
             return;
         }
 
-        const kitName: string = interaction.options.getString("name")!;
+        const kitName: string = interaction.options.getString("name")!.toLowerCase();
         const result = await getCollections().kits.deleteOne({ name: kitName });
 
         if (result && result.deletedCount) {

@@ -84,7 +84,7 @@ export default class Order extends Command {
             const kitName: string | null = interaction.options.getString(`kit${i}`);
             if (kitName == null) continue;
 
-            const kit = await getCollections().kits.findOne({ name: kitName, inStock: true });
+            const kit = await getCollections().kits.findOne({ name: kitName.toLowerCase(), inStock: true });
             if (!kit) {
                 await interaction.reply({
                     content: `Kit **(name: __${kitName}__)** either out of stock or not found.`,
@@ -97,6 +97,7 @@ export default class Order extends Command {
         }
 
         const order: OrderModel = {
+            discordGuildId: interaction.guild!.id,
             discordUsername: interaction.user.username,
             minecraftUsername: minecraftUsername,
             kitIds: kitIds,

@@ -33,7 +33,7 @@ export default class AddKit extends Command {
         }
 
         const kit: KitModel = {
-            name: interaction.options.getString("name")!,
+            name: interaction.options.getString("name")!.toLowerCase(),
             description: interaction.options.getString("description")!,
             kitId: interaction.options.getString("kit_id")!,
             inStock: true,

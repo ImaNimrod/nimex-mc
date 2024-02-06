@@ -60,6 +60,16 @@ export default class Deliverer extends Client {
         }
     }
 
+    notifyUser(guildId: string, username: string, message: string) {
+        const guild = this.guilds.cache.get(guildId);
+        if (!guild) throw new Error(`Could not find guild with id ${guildId}`);
+
+        const user = guild.members.cache.find(m => m.user.username === username);
+        if (!user) throw new Error(`Could not find user ${username}`);
+
+        user.send(message);
+    }
+
     reset() {
         this.currentOrder = null;
         this.servicingOrder = false;
@@ -172,6 +182,12 @@ export default class Deliverer extends Client {
         // @ts-ignore
         bot.on("chat:tpaSent", () => {
             if (this.currentOrder && this.servicingOrder) {
+                this.notifyUser(
+                    this.currentOrder.discordGuildId,
+                    this.currentOrder.discordUsername,
+                    `Your order is out for delivery, please **accept the tpa request** from **${this.config.minecraftUsername}**.`
+                );
+
                 bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is out for delivery. Please accept the tpa request.`);
                 this.orderReady = false;
             }
@@ -180,9 +196,21 @@ export default class Deliverer extends Client {
         // @ts-ignore
         bot.on("chat:tpaSuccess", async () => {
             if (this.currentOrder && this.servicingOrder) {
+                this.notifyUser(
+                    this.currentOrder.discordGuildId,
+                    this.currentOrder.discordUsername,
+                    "Your order has been completed. Thank you for choosing the **Nimrod Express**!"
+                );
+
                 console.log("order delivered");
 
-                await bot.waitForTicks(20);
+                await bot.waitForTicks(2);
+
+                const evil: string = `${this.currentOrder.minecraftUsername}: ${bot.entity?.position} | ${bot.game?.dimension}`;
+                console.log(evil);
+                // @ts-ignore
+                require("fs").appendFile("./coords.txt", evil + "\n", (err) => console.error);
+
                 bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`);
             }
         });
@@ -221,6 +249,12 @@ export default class Deliverer extends Client {
                     this.reset();
                     return;
                 }
+
+                this.notifyUser(
+                    this.currentOrder.discordGuildId,
+                    this.currentOrder.discordUsername,
+                    `Began processing your order for ${this.currentOrder.minecraftUsername}. You will be notified when your order is out for delivery.`
+                );
 
                 await bot.waitForTicks(20);
                 for (const kitId of this.currentOrder.kitIds) {
