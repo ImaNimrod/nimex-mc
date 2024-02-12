@@ -8,6 +8,7 @@ export default abstract class Command {
     name: string = "";
     description: string = "No description provided.";
     options: any[] = [];
+    dmPermission: boolean = false;
 
     protected constructor(client: Deliverer) {
         this.client = client;
@@ -19,6 +20,7 @@ export default abstract class Command {
         const command = new SlashCommandBuilder()
             .setName(this.name)
             .setDescription(this.description)
+            .setDMPermission(this.dmPermission)
 
         this.options.forEach((o) => command.options.push(o));
 

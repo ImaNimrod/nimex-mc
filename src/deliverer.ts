@@ -62,10 +62,10 @@ export default class Deliverer extends Client {
 
     notifyUser(guildId: string, username: string, message: string) {
         const guild = this.guilds.cache.get(guildId);
-        if (!guild) throw new Error(`Could not find guild with id ${guildId}`);
+        if (!guild) return;
 
         const user = guild.members.cache.find(m => m.user.username === username);
-        if (!user) throw new Error(`Could not find user ${username}`);
+        if (!user) return;
 
         user.send(message);
     }
@@ -204,13 +204,6 @@ export default class Deliverer extends Client {
 
                 console.log("order delivered");
 
-                await bot.waitForTicks(2);
-
-                const evil: string = `${this.currentOrder.minecraftUsername}: ${bot.entity?.position} | ${bot.game?.dimension}`;
-                console.log(evil);
-                // @ts-ignore
-                require("fs").appendFile("./coords.txt", evil + "\n", (err) => console.error);
-
                 bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`);
             }
         });
@@ -266,6 +259,7 @@ export default class Deliverer extends Client {
 
                         console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
 
+                        await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
                         await this.dropInventory();
                         this.reset();
                         return;
