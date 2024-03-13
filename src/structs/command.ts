@@ -18,9 +18,9 @@ export default abstract class Command {
 
     toJSON(): RESTPostAPIApplicationCommandsJSONBody {
         const command = new SlashCommandBuilder()
-            .setName(this.name)
-            .setDescription(this.description)
-            .setDMPermission(this.dmPermission)
+        .setName(this.name)
+        .setDescription(this.description)
+        .setDMPermission(this.dmPermission)
 
         this.options.forEach((o) => command.options.push(o));
 

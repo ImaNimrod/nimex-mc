@@ -9,9 +9,9 @@ export default class DiscardOrder extends Command {
     description = "Skips over and deletes a pending order.";
     options = [
         new SlashCommandStringOption()
-            .setName("order_username")
-            .setDescription("The discord username of pending order")
-            .setRequired(true),
+        .setName("order_username")
+        .setDescription("The discord username of pending order")
+        .setRequired(true),
     ];
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -39,11 +39,11 @@ export default class DiscardOrder extends Command {
             await interaction.reply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("__Order Skipped:__")
-                        .setDescription(`Pending order from **__${orderDiscordUsername}__** skipped and removed.`)
-                        .setColor(0xb78e60)
-                        .setTimestamp()
-                        .setFooter({ text: "Nimrod Express" }),
+                    .setTitle("__Order Skipped:__")
+                    .setDescription(`Pending order from **__${orderDiscordUsername}__** skipped and removed.`)
+                    .setColor(0xb78e60)
+                    .setTimestamp()
+                    .setFooter({ text: "Nimrod Express" }),
                 ],
                 ephemeral: true,
             });

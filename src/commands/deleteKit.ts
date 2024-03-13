@@ -9,9 +9,9 @@ export default class DeleteKit extends Command {
     description = "Removes a kit from the Nimrod Express' kit stock";
     options = [
         new SlashCommandStringOption()
-            .setName("name")
-            .setDescription("The display name of the kit")
-            .setRequired(true),
+        .setName("name")
+        .setDescription("The display name of the kit")
+        .setRequired(true),
     ];
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -30,11 +30,11 @@ export default class DeleteKit extends Command {
             await interaction.reply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("__Kit Deleted:__")
-                        .setDescription(`Kit **(name: __${kitName}__)** removed from the stock`)
-                        .setColor(0xb78e60)
-                        .setTimestamp()
-                        .setFooter({ text: "Nimrod Express" }),
+                    .setTitle("__Kit Deleted:__")
+                    .setDescription(`Kit **(name: __${kitName}__)** removed from the stock`)
+                    .setColor(0xb78e60)
+                    .setTimestamp()
+                    .setFooter({ text: "Nimrod Express" }),
                 ],
                 ephemeral: true,
             });

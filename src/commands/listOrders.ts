@@ -37,11 +37,11 @@ export default class ListOrders extends Command {
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("__Pending Orders:__")
-                    .addFields(fields)
-                    .setColor(0xb78e60)
-                    .setTimestamp()
-                    .setFooter({ text: "Nimrod Express" }),
+                .setTitle("__Pending Orders:__")
+                .addFields(fields)
+                .setColor(0xb78e60)
+                .setTimestamp()
+                .setFooter({ text: "Nimrod Express" }),
             ],
             ephemeral: true,
         });

@@ -10,17 +10,17 @@ export default class AddKit extends Command {
     description = "Adds a kit to the Nimrod Express' kit stock";
     options = [
         new SlashCommandStringOption()
-            .setName("name")
-            .setDescription("The display name of the kit")
-            .setRequired(true),
+        .setName("name")
+        .setDescription("The display name of the kit")
+        .setRequired(true),
         new SlashCommandStringOption()
-            .setName("description")
-            .setDescription("A description of the kit's content")
-            .setRequired(true),
+        .setName("description")
+        .setDescription("A description of the kit's content")
+        .setRequired(true),
         new SlashCommandStringOption()
-            .setName("kit_id")
-            .setDescription("The EXACT ingame name of the shulker box")
-            .setRequired(true),
+        .setName("kit_id")
+        .setDescription("The EXACT ingame name of the shulker box")
+        .setRequired(true),
     ];
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -45,15 +45,15 @@ export default class AddKit extends Command {
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("__Kit Added:__")
-                    .addFields(
-                        { name: "__Name:__", value: kit.name },
-                        { name: "__Description:__", value: kit.description },
-                        { name: "__Kit ID:__", value: kit.kitId },
-                    )
-                    .setColor(0xb78e60)
-                    .setTimestamp()
-                    .setFooter({ text: "Nimrod Express" }),
+                .setTitle("__Kit Added:__")
+                .addFields(
+                    { name: "__Name:__", value: kit.name },
+                    { name: "__Description:__", value: kit.description },
+                    { name: "__Kit ID:__", value: kit.kitId },
+                )
+                .setColor(0xb78e60)
+                .setTimestamp()
+                .setFooter({ text: "Nimrod Express" }),
             ],
             ephemeral: true,
         });

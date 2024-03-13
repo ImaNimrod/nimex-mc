@@ -10,13 +10,13 @@ export default function loadCommands(client: Deliverer): Collection<string, Comm
     const path = join(__dirname, "..", "commands");
 
     readdirSync(path)
-        .filter(f => f.endsWith(".js"))
-        .forEach(async (file) => {
-			const commandClass = ((r) => r.default || r)(await import (`../commands/${file}`));
-            const command: Command = new commandClass(client);
+    .filter(f => f.endsWith(".js"))
+    .forEach(async (file) => {
+        const commandClass = ((r) => r.default || r)(await import (`../commands/${file}`));
+        const command: Command = new commandClass(client);
 
-			commands.set(command.name, command);
-        });
+        commands.set(command.name, command);
+    });
 
     return commands;
 }

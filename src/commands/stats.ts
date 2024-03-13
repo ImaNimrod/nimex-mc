@@ -21,12 +21,12 @@ export default class Stats extends Command {
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("__Kit Delivery Statistics:__")
-                    .setDescription("Thank you for choosing the Nimrod Express")
-                    .addFields(fields)
-                    .setColor(0xb78e60)
-                    .setTimestamp()
-                    .setFooter({ text: "Nimrod Express" }),
+                .setTitle("__Kit Delivery Statistics:__")
+                .setDescription("Thank you for choosing the Nimrod Express")
+                .addFields(fields)
+                .setColor(0xb78e60)
+                .setTimestamp()
+                .setFooter({ text: "Nimrod Express" }),
             ],
         });
     }

@@ -29,11 +29,11 @@ export default class ListKits extends Command {
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("__Kit Selection:__")
-                    .addFields(fields)
-                    .setColor(0xb78e60)
-                    .setTimestamp()
-                    .setFooter({ text: "Nimrod Express" }),
+                .setTitle("__Kit Selection:__")
+                .addFields(fields)
+                .setColor(0xb78e60)
+                .setTimestamp()
+                .setFooter({ text: "Nimrod Express" }),
             ],
             ephemeral: true,
         });

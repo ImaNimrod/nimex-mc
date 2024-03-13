@@ -46,7 +46,7 @@ export default class Deliverer extends Client {
                     return true;
                 }
             }
- 
+
             openedChest.close();
         }
 
@@ -202,9 +202,9 @@ export default class Deliverer extends Client {
                     "Your order has been completed. Thank you for choosing the **Nimrod Express**!"
                 );
 
-                console.log("order delivered");
+            console.log("order delivered");
 
-                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`);
+            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`);
             }
         });
 
@@ -249,25 +249,25 @@ export default class Deliverer extends Client {
                     `Began processing your order for ${this.currentOrder.minecraftUsername}. You will be notified when your order is out for delivery.`
                 );
 
-                await bot.waitForTicks(20);
-                for (const kitId of this.currentOrder.kitIds) {
-                    if (!await this.acquireKit(kitId)) {
-                        await getCollections().kits.updateOne(
-                            { kitId: kitId },
-                            { $set: { inStock: false }},
-                        );
+            await bot.waitForTicks(20);
+            for (const kitId of this.currentOrder.kitIds) {
+                if (!await this.acquireKit(kitId)) {
+                    await getCollections().kits.updateOne(
+                        { kitId: kitId },
+                        { $set: { inStock: false }},
+                    );
 
-                        console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
+                    console.log(`WARNING: kit (id: ${kitId}) needs to be restocked`);
 
-                        await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
-                        await this.dropInventory();
-                        this.reset();
-                        return;
-                    }
+                    await getCollections().orders.deleteOne({ discordUsername: this.currentOrder.discordUsername, createdAt: this.currentOrder.createdAt });
+                    await this.dropInventory();
+                    this.reset();
+                    return;
                 }
+            }
 
-                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
-                this.orderReady = true;
+            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
+            this.orderReady = true;
             }
         });
     }

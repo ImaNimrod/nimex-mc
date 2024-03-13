@@ -10,22 +10,22 @@ export default class Order extends Command {
     description = "Places an order for your selection of kits";
     options = [
         new SlashCommandStringOption()
-            .setName("mc_username")
-            .setDescription("The ingame username of the player you want the order delivered to")
-            .setRequired(true),
+        .setName("mc_username")
+        .setDescription("The ingame username of the player you want the order delivered to")
+        .setRequired(true),
         new SlashCommandStringOption()
-            .setName("kit1")
-            .setDescription("Kit #1")
-            .setRequired(true),
+        .setName("kit1")
+        .setDescription("Kit #1")
+        .setRequired(true),
         new SlashCommandStringOption()
-            .setName("kit2")
-            .setDescription("Kit #2"),
+        .setName("kit2")
+        .setDescription("Kit #2"),
         new SlashCommandStringOption()
-            .setName("kit3")
-            .setDescription("Kit #3"),
+        .setName("kit3")
+        .setDescription("Kit #3"),
         new SlashCommandStringOption()
-            .setName("kit4")
-            .setDescription("Kit #4"),
+        .setName("kit4")
+        .setDescription("Kit #4"),
     ];
 
     async execute(interaction: ChatInputCommandInteraction) {
@@ -111,11 +111,11 @@ export default class Order extends Command {
         await interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("__Order Placed:__")
-                    .setDescription("The account selected will be notified ingame on the status of your order")
-                    .setColor(0xb78e60)
-                    .setTimestamp()
-                    .setFooter({ text: "Nimrod Express" }),
+                .setTitle("__Order Placed:__")
+                .setDescription("The account selected will be notified ingame on the status of your order")
+                .setColor(0xb78e60)
+                .setTimestamp()
+                .setFooter({ text: "Nimrod Express" }),
             ],
             ephemeral: true,
         });
