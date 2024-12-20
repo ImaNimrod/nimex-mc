@@ -1,10 +1,11 @@
+const EventEmitter = require("events");
 const mineflayer = require("mineflayer");
 
 const Kit = require("./models/kit");
 const Order = require("./models/order");
 
 // TODO: create a formal state machine, so that order completion is independent from bot state
-class DeliveryBot {
+class DeliveryBot extends EventEmitter {
     bot = null;
     initialized = false;
     spawned = 0;
@@ -101,6 +102,7 @@ class DeliveryBot {
 
                 console.log(`mc bot ${bot.username} initialized`);
                 this.initialized = true;
+                this.emit("initialized");
             }
         });
 
@@ -108,6 +110,7 @@ class DeliveryBot {
             if (this.currentOrder && this.servicingOrder) {
                 bot.chat(`/msg ${this.currentOrder.minecraftUsername} You canceled your order last minute. Be better.`)
                 await this.dropInventory();
+                this.emit("orderCanceled");
                 this.reset();
             }
         });
@@ -117,6 +120,7 @@ class DeliveryBot {
                 if (this.tpaFails++ >= 5) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
                     await this.dropInventory();
+                    this.emit("orderCanceled");
                     this.reset();
                 }
 
@@ -136,6 +140,8 @@ class DeliveryBot {
         });
 
         bot.on("chat:tpaSuccess", async () => {
+            this.emit("orderDelivered");
+
             await bot.waitForTicks(20);
             bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`)
         });
@@ -145,6 +151,7 @@ class DeliveryBot {
                 if (this.tpaFails++ >= 5) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
                     await this.dropInventory();
+                    this.emit("orderCanceled");
                     this.reset();
                     return;
                 }
@@ -155,11 +162,15 @@ class DeliveryBot {
         });
 
         bot.on("death", async () => {
-            this.currentOrder.delivered = true;
-            this.currentOrder.deliveredAt = Date.now();
-            await this.currentOrder.save();
+            if (this.currentOrder && this.servicingOrder) {
+                console.log(`order completed for ${this.currentOrder.minecraftUsername}`);
 
-            this.reset();
+                this.currentOrder.delivered = true;
+                this.currentOrder.deliveredAt = Date.now();
+                await this.currentOrder.save();
+
+                this.reset();
+            }
         });
 
         bot.on("end", (_) => {
@@ -198,6 +209,8 @@ class DeliveryBot {
                 return;
             }
 
+            this.emit("newOrder");
+
             this.currentOrder = nextOrder;
             this.servicingOrder = true;
 
@@ -216,6 +229,7 @@ class DeliveryBot {
                     await this.currentOrder.save();
 
                     await this.dropInventory();
+                    this.emit("orderCanceled");
                     this.reset();
                     return;
                 }
@@ -227,6 +241,7 @@ class DeliveryBot {
                 this.currentOrder.canceled = true;
                 await this.currentOrder.save();
 
+                this.emit("orderCanceled");
                 this.reset();
                 return;
             }
