@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
-const Kit = require("../models/kitModel");
+
+const Kit = require("../models/kit");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,26 +15,17 @@ module.exports = {
             footer: { text: "Nimrod Express" },
         };
 
-        await Kit.find({})
-        .then(async (kits) => {
-            for (const kit of kits) {
-                embed.fields.push({
-                    name: `__${kit.name}__`.concat(kit.inStock ? "" : " (OUT OF STOCK)"),
-                    value: kit.description,
-                });
-            }
+        const kits = await Kit.find({ discordGuildId: interaction.guild.id });
+        for (const kit of kits) {
+            embed.fields.push({
+                name: `__${kit.name}__`.concat(kit.inStock ? "" : " (OUT OF STOCK)"),
+                value: kit.description,
+            });
+        }
 
-            await interaction.reply({
-                embeds: [embed],
-                ephemeral: true,
-            });
-        })
-        .catch(async (_) => {
-            await interaction.reply({
-                content: "An internal error occured.",
-                ephemeral: true,
-            });
+        await interaction.reply({
+            embeds: [embed],
+            ephemeral: true,
         });
-
     }
 }

@@ -1,0 +1,240 @@
+const mineflayer = require("mineflayer");
+
+const Kit = require("./models/kit");
+const Order = require("./models/order");
+
+// TODO: create a formal state machine, so that order completion is independent from bot state
+class DeliveryBot {
+    bot = null;
+    initialized = false;
+    spawned = 0;
+    stashChests = null;
+
+    currentOrder = null;
+    servicingOrder = false;
+    orderReady = false;
+    tpaFails = 0;
+
+    async acquireKit(kitId) {
+        for (const chest of this.stashChests) {
+            const openedChest = await this.bot.openContainer(this.bot.world.getBlock(chest));
+
+            for (const item of openedChest.containerItems()) {
+                if (!item.name.includes("shulker_box") || !item.customName) {
+                    continue;
+                }
+
+                if (item.customName.includes(kitId)) {
+                    await openedChest.withdraw(item.type, null, null, item.nbt);
+                    openedChest.close();
+                    return true;
+                }
+            }
+
+            openedChest.close();
+        }
+
+        return false;
+    }
+
+    async dropInventory() {
+        for (const item of this.bot.inventory.slots) {
+            if (!item) {
+                continue;
+            }
+            await this.bot.tossStack(item);
+        }
+    }
+
+    reset() {
+        this.currentOrder = null;
+        this.servicingOrder = false;
+        this.orderReady = false;
+        this.tpaFails = 0;
+    }
+
+    start() {
+        const bot = mineflayer.createBot({
+            version: global.config.minecraftVersion,
+            host: "6b6t.org",
+            username: global.config.minecraftUsername,
+            auth: "offline",
+            skipValidation: true,
+            checkTimeoutInterval: 9999999,
+        });
+
+        this.bot = bot;
+
+        bot.on("spawn", async () => {
+            this.spawned++
+
+            if (this.spawned == 1) {
+                bot.chat("/login " + global.config.minecraftPassword);
+                bot.setControlState("forward", true);
+            }
+
+            if (this.spawned == 2) {
+                bot.setControlState("forward", false);
+
+                bot.chat("/connectionmsgs on");
+
+                bot.addChatPattern("tpaDenied", /.*was denied!$/);
+                bot.addChatPattern("tpaFail", /Player not found!/);
+                bot.addChatPattern("tpaRequest", /(.+) wants to teleport to you.$/, { parse: true });
+                bot.addChatPattern("tpaSent", /Request sent to.*/);
+                bot.addChatPattern("tpaSuccess", /Teleported to.*/);
+                bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
+
+                await bot.waitForChunksToLoad();
+                await this.dropInventory();
+
+                this.stashChests = bot.findBlocks({
+                    matching: bot.registry.blocksByName["trapped_chest"].id,
+                    count: 20,
+                });
+
+                if (!this.stashChests?.length) {
+                    console.error(`ERROR: mc bot ${bot.username} unable to find stash chests`);
+                    bot.end();
+                    return;
+                }
+
+                console.log(`mc bot ${bot.username} initialized`);
+                this.initialized = true;
+            }
+        });
+
+        bot.on("chat:tpaDenied", async () => {
+            if (this.currentOrder && this.servicingOrder) {
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} You canceled your order last minute. Be better.`)
+                await this.dropInventory();
+                this.reset();
+            }
+        });
+
+        bot.on("chat:tpaFail", async () => {
+            if (this.currentOrder && this.servicingOrder) {
+                if (this.tpaFails++ >= 5) {
+                    bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
+                    await this.dropInventory();
+                    this.reset();
+                }
+
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please accept the tpa request for your delivery.`);
+                this.orderReady = true;
+            }
+        });
+
+        bot.on("chat:tpaRequest", (matches) => {
+            if (matches[0] == "QuantumPapaya") {
+                bot.chat("/tpy QuantumPapaya");
+            }
+        });
+
+        bot.on("chat:tpaSent", () => {
+            this.orderReady = false;
+        });
+
+        bot.on("chat:tpaSuccess", async () => {
+            await bot.waitForTicks(20);
+            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`)
+        });
+
+        bot.on("chat:tpaTimeout", async () => {
+            if (this.currentOrder && this.servicingOrder) {
+                if (this.tpaFails++ >= 5) {
+                    bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
+                    await this.dropInventory();
+                    this.reset();
+                    return;
+                }
+
+                bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please accept the tpa request for your delivery.`);
+                this.orderReady = true;
+            }
+        });
+
+        bot.on("death", async () => {
+            this.currentOrder.delivered = true;
+            this.currentOrder.deliveredAt = Date.now();
+            await this.currentOrder.save();
+
+            this.reset();
+        });
+
+        bot.on("end", (_) => {
+            bot.removeAllListeners();
+
+            this.reset();
+            this.bot = null;
+            this.initialized = false;
+            this.spawned = 0;
+            this.stashChests = null;
+
+            console.log("mc bot restarting in 5s...");
+            setTimeout(this.start.bind(this), 5000);
+        });
+
+        bot.on("kicked", (reason) => {
+            console.error(`mc bot kick for reason: ${reason}`);
+        });
+
+        bot.on("time", async () => {
+            if (!this.initialized) {
+                return;
+            }
+
+            if (this.currentOrder && this.orderReady) {
+                bot.chat(`/tpa ${this.currentOrder.minecraftUsername}`);
+                return;
+            }
+
+            if (this.servicingOrder) {
+                return;
+            }
+
+            const nextOrder = await Order.findOne({ delivered: false, canceled: false }).sort({ createdAt: 1 });
+            if (!nextOrder) {
+                return;
+            }
+
+            this.currentOrder = nextOrder;
+            this.servicingOrder = true;
+
+            await bot.waitForTicks(20);
+
+            for (const kitId of this.currentOrder.kitIds) {
+                if (!await this.acquireKit(kitId)) {
+                    console.log(`kit (id: ${kitId}) needs to be restocked, canceled order`);
+
+                    await Kit.updateOne({
+                        kitId: kitId,
+                        discordGuildId: this.currentOrder.discordGuildId,
+                    }, { $set: { inStock: false } });
+
+                    this.currentOrder.canceled = true;
+                    await this.currentOrder.save();
+
+                    await this.dropInventory();
+                    this.reset();
+                    return;
+                }
+            }
+
+            if (!bot.players[this.currentOrder.minecraftUsername]) {
+                console.log(`${this.currentOrder.minecraftUsername} is not online, canceled order`);
+
+                this.currentOrder.canceled = true;
+                await this.currentOrder.save();
+
+                this.reset();
+                return;
+            }
+
+            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your order is ready and will be delivered to you as soon as possible.`);
+            this.orderReady = true;
+        });
+    }
+}
+
+module.exports = DeliveryBot;

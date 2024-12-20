@@ -2,8 +2,8 @@ const { SlashCommandBuilder } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
-    .setName("help")
-    .setDescription("Displays helpful information about how to use Nimrod Express"),
+        .setName("help")
+        .setDescription("Displays helpful information about how to use Nimrod Express"),
 
     async execute(interaction, client) {
         const embed = {
@@ -13,7 +13,7 @@ module.exports = {
             footer: { text: "Nimrod Express" },
         };
 
-        const embeds = [embed]
+        const embeds = [embed];
         
         const privledgedRole = await interaction.guild.roles.fetch(process.env.DISCORD_PRIVLEDGED_ROLE_ID.toString());
         if (interaction.member.roles.cache.has(privledgedRole.id)) {
