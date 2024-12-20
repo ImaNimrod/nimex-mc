@@ -15,8 +15,8 @@ module.exports = {
             });
         }
 
-        const orders = await Order.find({ discordGuildId: interaction.guild.id, delivered: false, canceled: false }).sort({ createdAt: 1 });
-        if (orders.length == 0) {
+        const pendingOrders = await Order.find({ discordGuildId: interaction.guild.id, delivered: false, canceled: false }).sort({ createdAt: 1 });
+        if (pendingOrders.length == 0) {
             return await interaction.reply({
                 content: "No pending orders.",
                 ephemeral: true,
@@ -30,7 +30,7 @@ module.exports = {
             footer: { text: "Nimrod Express" },
         };
 
-        for (const order of orders) {
+        for (const order of pendingOrders) {
             embed.fields.push({
                 name: `__${order.discordUsername}__ placed an order for __${order.minecraftUsername}__`,
                 value: order.kitIds.join(", "),

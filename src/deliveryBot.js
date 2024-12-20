@@ -109,6 +109,10 @@ class DeliveryBot extends EventEmitter {
         bot.on("chat:tpaDenied", async () => {
             if (this.currentOrder && this.servicingOrder) {
                 bot.chat(`/msg ${this.currentOrder.minecraftUsername} You canceled your order last minute. Be better.`)
+
+                this.currentOrder.canceled = true;
+                await this.currentOrder.save();
+
                 await this.dropInventory();
                 this.emit("orderCanceled");
                 this.reset();
@@ -119,6 +123,10 @@ class DeliveryBot extends EventEmitter {
             if (this.currentOrder && this.servicingOrder) {
                 if (this.tpaFails++ >= 5) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
+
+                    this.currentOrder.canceled = true;
+                    await this.currentOrder.save();
+
                     await this.dropInventory();
                     this.emit("orderCanceled");
                     this.reset();
@@ -150,6 +158,10 @@ class DeliveryBot extends EventEmitter {
             if (this.currentOrder && this.servicingOrder) {
                 if (this.tpaFails++ >= 5) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
+
+                    this.currentOrder.canceled = true;
+                    await this.currentOrder.save();
+
                     await this.dropInventory();
                     this.emit("orderCanceled");
                     this.reset();

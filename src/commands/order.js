@@ -24,6 +24,16 @@ module.exports = {
         .setRequired(false)),
 
     async execute(interaction, client) {
+        const pendingOrders = await Order.find({ discordGuildId: interaction.guild.id, delivered: false, canceled: false }).sort({ createdAt: 1 });
+        for (const order of pendingOrders) {
+            if (order.minecraftUsername == interaction.options.getString("mc_username")) {
+                return await interaction.reply({
+                    content: `There is already an order pending for **${order.minecraftUsername}**. Please wait for that order to completed.`,
+                    ephemeral: true,
+                });
+            }
+        }
+
         const kitIds = [];
 
         for (let i = 1; i < 4; i++) {
