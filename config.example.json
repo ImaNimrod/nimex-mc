@@ -1,8 +1,9 @@
 {
+    "apiPort": 3000,
     "discordKitManagementRole": "NAME OF DISCORD ROLE FOR MANAGING KIT STOCK",
     "discordToken": "DISCORD_BOT_TOKEN",
     "minecraftVersion": "1.21",
     "minecraftUsername": "MINECRAFT_USERNAME",
     "minecraftPassword": "MINECRAFT_PASSWORD",
-    "mongodbUri": "MONGO_DB_CONNECTION_URI" 
+    "mongodbUri": "MONGO_DB_CONNECTION_URI"
 }
