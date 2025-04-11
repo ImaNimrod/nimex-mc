@@ -1,5 +1,6 @@
 const EventEmitter = require("events");
 const mineflayer = require("mineflayer");
+const { Movements, goals, pathfinder } = require("mineflayer-pathfinder");
 
 const Kit = require("./models/kit");
 const Order = require("./models/order");
@@ -63,6 +64,8 @@ class DeliveryBot extends EventEmitter {
             skipValidation: true,
             checkTimeoutInterval: 9999999,
         });
+
+        bot.loadPlugin(pathfinder);
 
         this.bot = bot;
 
