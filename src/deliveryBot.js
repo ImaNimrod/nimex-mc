@@ -3,12 +3,12 @@ const mineflayer = require("mineflayer");
 
 const Kit = require("./models/kit");
 const Order = require("./models/order");
+const solveMaze = require("./mazeSolver");
 
 // TODO: create a formal state machine, so that order completion is independent from bot state
 class DeliveryBot extends EventEmitter {
     bot = null;
     initialized = false;
-    spawned = 0;
     stashChests = null;
 
     currentOrder = null;
@@ -67,42 +67,51 @@ class DeliveryBot extends EventEmitter {
         this.bot = bot;
 
         bot.on("spawn", async () => {
-            this.spawned++
+            if (!this.initialized) {
+                await bot.waitForTicks(20);
 
-            if (this.spawned == 1) {
+                bot.chat("/register " + global.config.minecraftPassword);
+                await bot.waitForTicks(20)
                 bot.chat("/login " + global.config.minecraftPassword);
-                bot.setControlState("forward", true);
-            }
 
-            if (this.spawned == 2) {
-                bot.setControlState("forward", false);
+                await bot.waitForTicks(20)
+                await solveMaze(bot);
 
-                bot.chat("/connectionmsgs on");
+                bot.pathfinder.setMovements(new Movements(bot, bot.registry));
+                bot.pathfinder.setGoal(new goals.GoalNear(-999.5, 101, -987, 1));
 
-                bot.addChatPattern("tpaDenied", /.*was denied!$/);
-                bot.addChatPattern("tpaFail", /Player not found!/);
-                bot.addChatPattern("tpaRequest", /(.+) wants to teleport to you.$/, { parse: true });
-                bot.addChatPattern("tpaSent", /Request sent to.*/);
-                bot.addChatPattern("tpaSuccess", /Teleported to.*/);
-                bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
+                bot.once("goal_reached", async () => {
+                    console.log(`mc bot ${bot.username} joining main server...`);
 
-                await bot.waitForChunksToLoad();
-                await this.dropInventory();
+                    bot.chat("/connectionmsgs on");
 
-                this.stashChests = bot.findBlocks({
-                    matching: bot.registry.blocksByName["trapped_chest"].id,
-                    count: 20,
+                    bot.addChatPattern("tpaDenied", /.*was denied!$/);
+                    bot.addChatPattern("tpaFail", /Player not found!/);
+                    bot.addChatPattern("tpaRequest", /(.+) wants to teleport to you.$/, { parse: true });
+                    bot.addChatPattern("tpaSent", /Request sent to.*/);
+                    bot.addChatPattern("tpaSuccess", /Teleported to.*/);
+                    bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
+
+                    await bot.waitForChunksToLoad();
+                    await this.dropInventory();
+
+                    this.stashChests = bot.findBlocks({
+                        matching: bot.registry.blocksByName["trapped_chest"].id,
+                        count: 20,
+                    });
+
+                    if (!this.stashChests?.length) {
+                        console.error(`ERROR: mc bot ${bot.username} unable to find stash chests`);
+                        bot.end();
+                        return;
+                    }
+
+                    console.log(`mc bot ${bot.username} initialized`);
+                    this.initialized = true;
+                    this.emit("initialized");
                 });
 
-                if (!this.stashChests?.length) {
-                    console.error(`ERROR: mc bot ${bot.username} unable to find stash chests`);
-                    bot.end();
-                    return;
-                }
-
-                console.log(`mc bot ${bot.username} initialized`);
-                this.initialized = true;
-                this.emit("initialized");
+                return;
             }
         });
 
@@ -191,7 +200,6 @@ class DeliveryBot extends EventEmitter {
             this.reset();
             this.bot = null;
             this.initialized = false;
-            this.spawned = 0;
             this.stashChests = null;
 
             console.log("mc bot restarting in 5s...");
@@ -253,6 +261,7 @@ class DeliveryBot extends EventEmitter {
                 this.currentOrder.canceled = true;
                 await this.currentOrder.save();
 
+                await this.dropInventory();
                 this.emit("orderCanceled");
                 this.reset();
                 return;
