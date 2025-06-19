@@ -56,7 +56,6 @@ const DeliveryBot = require("./deliveryBot");
     await mongoose.connect(global.config.mongodbUri);
     console.log("connected to MongoDB database");
 
-    const deliveryBot = new DeliveryBot();
-    global.deliveryBot = deliveryBot;
-    deliveryBot.start();
+    global.deliveryBot = new DeliveryBot;
+    global.deliveryBot.start();
 })().catch(console.error);

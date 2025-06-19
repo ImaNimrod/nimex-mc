@@ -4,16 +4,15 @@
   "description": "A fully automated kit delivery service for 6b6t.",
   "main": "src/index.js",
   "scripts": {
-    "test": "node src/index.js"
+    "start": "node src/index.js"
   },
   "author": "nimrod",
   "license": "ISC",
   "dependencies": {
     "discord.js": "^14.16.3",
-    "express": "^4.21.2",
-    "http-errors": "^2.0.0",
     "mineflayer": "^4.23.0",
     "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-world-utils": "^1.0.2",
     "mongoose": "^8.9.1"
   }
 }

@@ -6,7 +6,6 @@ const { solveMaze } = require("mineflayer-world-utils");
 const Kit = require("./models/kit");
 const Order = require("./models/order");
 
-// TODO: create a formal state machine, so that order completion is independent from bot state
 class DeliveryBot extends EventEmitter {
     bot = null;
     initialized = false;
