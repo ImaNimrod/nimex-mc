@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { MessageFlags, SlashCommandBuilder } = require("discord.js");
 
 const Kit = require("../models/kit");
 
@@ -25,7 +25,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [embed],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     }
 }

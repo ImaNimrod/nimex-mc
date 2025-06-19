@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { MessageFlags, SlashCommandBuilder } = require("discord.js");
 
 const Kit = require("../models/kit");
 
@@ -20,7 +20,7 @@ module.exports = {
         if (!interaction.member.roles.cache.some(role => role.name === global.config.discordKitManagementRole)) {
             return interaction.reply({
                 content: "You do not have permission to use this command.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -34,7 +34,7 @@ module.exports = {
         if (!kit) {
             return await interaction.reply({
                 content: `Kit **${kitName}** not found.`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -55,7 +55,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [embed],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     }
 }

@@ -1,10 +1,10 @@
 const EventEmitter = require("events");
 const mineflayer = require("mineflayer");
 const { Movements, goals, pathfinder } = require("mineflayer-pathfinder");
+const { solveMaze } = require("mineflayer-world-utils");
 
 const Kit = require("./models/kit");
 const Order = require("./models/order");
-const solveMaze = require("./mazeSolver");
 
 // TODO: create a formal state machine, so that order completion is independent from bot state
 class DeliveryBot extends EventEmitter {
@@ -55,6 +55,17 @@ class DeliveryBot extends EventEmitter {
         this.tpaFails = 0;
     }
 
+    restart() {
+        this.bot.removeAllListeners();
+
+        console.log("mc bot restarting in 10s...");
+
+        this.reset();
+        this.stashChests = null;
+
+        setTimeout(this.bot.end, 10000);
+    }
+
     start() {
         const bot = mineflayer.createBot({
             version: global.config.minecraftVersion,
@@ -78,7 +89,10 @@ class DeliveryBot extends EventEmitter {
                 bot.chat("/login " + global.config.minecraftPassword);
 
                 await bot.waitForTicks(20)
-                await solveMaze(bot);
+
+                if (global.config.captchaEnabled === true) {
+                    await solveMaze(bot);
+                }
 
                 bot.pathfinder.setMovements(new Movements(bot, bot.registry));
                 bot.pathfinder.setGoal(new goals.GoalNear(-999.5, 101, -987, 1));
@@ -105,7 +119,7 @@ class DeliveryBot extends EventEmitter {
 
                     if (!this.stashChests?.length) {
                         console.error(`ERROR: mc bot ${bot.username} unable to find stash chests`);
-                        bot.end();
+                        this.restart();
                         return;
                     }
 
@@ -198,15 +212,8 @@ class DeliveryBot extends EventEmitter {
         });
 
         bot.on("end", (_) => {
-            bot.removeAllListeners();
-
-            this.reset();
-            this.bot = null;
-            this.initialized = false;
-            this.stashChests = null;
-
-            console.log("mc bot restarting in 5s...");
-            setTimeout(this.start.bind(this), 5000);
+            global.deliveryBot = new DeliveryBot();
+            global.deliveryBot.start();
         });
 
         bot.on("kicked", (reason) => {

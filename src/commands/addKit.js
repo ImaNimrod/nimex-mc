@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { MessageFlags, SlashCommandBuilder } = require("discord.js");
 
 const Kit = require("../models/kit");
 
@@ -20,7 +20,7 @@ module.exports = {
         if (!interaction.member.roles.cache.some(role => role.name === global.config.discordKitManagementRole)) {
             return interaction.reply({
                 content: "You do not have permission to use this command.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -37,7 +37,7 @@ module.exports = {
             if (err.errmsg?.toString().includes("duplicate")) {
                 return await interaction.reply({
                     content: "**Unable to create kit:** duplicate value provided for either kit name or ID.",
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             } else {
                 throw err;
@@ -57,7 +57,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [embed],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     }
 }

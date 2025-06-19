@@ -1,15 +1,13 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { MessageFlags, SlashCommandBuilder } = require("discord.js");
 
 const Kit = require("../models/kit");
+const Link = require("../models/link");
 const Order = require("../models/order");
 
 module.exports = {
     data: new SlashCommandBuilder()
     .setName("order")
     .setDescription("Places an order for your selection of kits")
-    .addStringOption(option => option.setName("mc_username")
-        .setDescription("The Minecraft username of the account you want the kits delivered to")
-        .setRequired(true))
     .addStringOption(option => option.setName("kit1")
         .setDescription("Kit #1")
         .setRequired(true))
@@ -21,15 +19,31 @@ module.exports = {
         .setRequired(false))
     .addStringOption(option => option.setName("kit4")
         .setDescription("Kit #4")
+        .setRequired(false))
+    .addStringOption(option => option.setName("mc_username")
+        .setDescription("The Minecraft username of the account you want the kits delivered to (leave blank to use your link)")
         .setRequired(false)),
 
     async execute(interaction, client) {
+        let minecraftUsername = interaction.options.getString("mc_username");
+        if (!minecraftUsername) {
+            const link = await Link.findOne({ discordUserId: interaction.user.id });
+            if (!link) {
+                return await interaction.reply({
+                    content: "Unable to determine Minecraft username for delivery. Please create a link or specify a username.",
+                    flags: MessageFlags.Ephemeral,
+                });
+            }
+
+            minecraftUsername = link.minecraftUsername;
+        }
+
         const pendingOrders = await Order.find({ discordGuildId: interaction.guild.id, delivered: false, canceled: false }).sort({ createdAt: 1 });
         for (const order of pendingOrders) {
-            if (order.minecraftUsername == interaction.options.getString("mc_username")) {
+            if (order.minecraftUsername == minecraftUsername) {
                 return await interaction.reply({
                     content: `There is already an order pending for **${order.minecraftUsername}**. Please wait for that order to completed.`,
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         }
@@ -52,7 +66,7 @@ module.exports = {
             } catch (_) {
                 return await interaction.reply({
                     content: `Kit '**${kitName}**' not found.`,
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         }
@@ -60,7 +74,7 @@ module.exports = {
         const order = new Order({
             discordGuildId: interaction.guild.id,
             discordUsername: interaction.user.username,
-            minecraftUsername: interaction.options.getString("mc_username"),
+            minecraftUsername: minecraftUsername,
             kitIds: kitIds,
         });
 
@@ -75,7 +89,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [embed],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     }
 }

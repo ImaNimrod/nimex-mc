@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { MessageFlags, SlashCommandBuilder } = require("discord.js");
 
 const Order = require("../models/order");
 
@@ -11,7 +11,7 @@ module.exports = {
         if (!interaction.member.roles.cache.some(role => role.name === global.config.discordKitManagementRole)) {
             return interaction.reply({
                 content: "You do not have permission to use this command.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -19,7 +19,7 @@ module.exports = {
         if (pendingOrders.length == 0) {
             return await interaction.reply({
                 content: "No pending orders.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -39,7 +39,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [embed],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     }
 }
