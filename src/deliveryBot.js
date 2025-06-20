@@ -54,17 +54,6 @@ class DeliveryBot extends EventEmitter {
         this.tpaFails = 0;
     }
 
-    restart() {
-        this.bot.removeAllListeners();
-
-        console.log("mc bot restarting in 10s...");
-
-        this.reset();
-        this.stashChests = null;
-
-        setTimeout(this.bot.end, 10000);
-    }
-
     start() {
         const bot = mineflayer.createBot({
             version: global.config.minecraftVersion,
@@ -84,10 +73,10 @@ class DeliveryBot extends EventEmitter {
                 await bot.waitForTicks(20);
 
                 bot.chat("/register " + global.config.minecraftPassword);
-                await bot.waitForTicks(20)
+                await bot.waitForTicks(20);
                 bot.chat("/login " + global.config.minecraftPassword);
 
-                await bot.waitForTicks(20)
+                await bot.waitForTicks(20);
 
                 if (global.config.captchaEnabled === true) {
                     await solveMaze(bot);
@@ -118,7 +107,8 @@ class DeliveryBot extends EventEmitter {
 
                     if (!this.stashChests?.length) {
                         console.error(`ERROR: mc bot ${bot.username} unable to find stash chests`);
-                        this.restart();
+                        console.log("mc bot restarting in 5s...");
+                        setTimeout(this.bot.end.bind(this.bot), 5000);
                         return;
                     }
 
@@ -211,8 +201,14 @@ class DeliveryBot extends EventEmitter {
         });
 
         bot.on("end", (_) => {
-            global.deliveryBot = new DeliveryBot();
-            global.deliveryBot.start();
+            bot.removeAllListeners();
+
+            this.reset();
+            this.bot = null;
+            this.initialized = false;
+            this.stashChests = null;
+
+            this.start()
         });
 
         bot.on("kicked", (reason) => {
