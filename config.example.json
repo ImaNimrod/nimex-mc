@@ -7,5 +7,5 @@
     "minecraftPassword": "MINECRAFT_PASSWORD",
     "mongodbUri": "MONGO_DB_CONNECTION_URI",
     "netheriteCount": 3,
-    "netheriteTpaEnabled": true,
+    "netheriteTpaEnabled": true
 }
