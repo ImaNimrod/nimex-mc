@@ -1,10 +1,11 @@
 {
-    "apiPort": 3000,
     "captchaEnabled": false,
     "discordKitManagementRole": "NAME OF DISCORD ROLE FOR MANAGING KIT STOCK",
     "discordToken": "DISCORD_BOT_TOKEN",
     "minecraftVersion": "1.20.4",
     "minecraftUsername": "MINECRAFT_USERNAME",
     "minecraftPassword": "MINECRAFT_PASSWORD",
-    "mongodbUri": "MONGO_DB_CONNECTION_URI"
+    "mongodbUri": "MONGO_DB_CONNECTION_URI",
+    "netheriteCount": 3,
+    "netheriteTpaEnabled": true,
 }

@@ -50,7 +50,7 @@ module.exports = {
 
         const kitIds = [];
 
-        for (let i = 1; i < 4; i++) {
+        for (let i = 1; i <= 4; i++) {
             const kitName = interaction.options.getString("kit" + i.toString());
             if (!kitName) {
                 continue;

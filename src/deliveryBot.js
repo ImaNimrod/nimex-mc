@@ -38,6 +38,24 @@ class DeliveryBot extends EventEmitter {
         return false;
     }
 
+    async acquireNetherite(count) {
+        for (const chest of this.stashChests) {
+            const openedChest = await this.bot.openContainer(this.bot.world.getBlock(chest));
+
+            for (const item of openedChest.containerItems()) {
+                if (item.name == "netherite_block") {
+                    await openedChest.withdraw(item.type, null, count, null);
+                    openedChest.close();
+                    return true;
+                }
+            }
+
+            openedChest.close();
+        }
+
+        return false;
+    }
+
     async dropInventory() {
         for (const item of this.bot.inventory.slots) {
             if (!item) {
@@ -88,7 +106,7 @@ class DeliveryBot extends EventEmitter {
                 bot.once("goal_reached", async () => {
                     console.log(`mc bot ${bot.username} joining main server...`);
 
-                    bot.chat("/connectionmsgs on");
+                    await bot.waitForTicks(60);
 
                     bot.addChatPattern("tpaDenied", /.*was denied!$/);
                     bot.addChatPattern("tpaFail", /Player not found!/);
@@ -98,11 +116,12 @@ class DeliveryBot extends EventEmitter {
                     bot.addChatPattern("tpaTimeout", /Your teleport request to.*/);
 
                     await bot.waitForChunksToLoad();
+
                     await this.dropInventory();
 
                     this.stashChests = bot.findBlocks({
-                        matching: bot.registry.blocksByName["trapped_chest"].id,
-                        count: 20,
+                        matching: block => block.name === "trapped_chest",
+                        count: 200,
                     });
 
                     if (!this.stashChests?.length) {
@@ -240,6 +259,12 @@ class DeliveryBot extends EventEmitter {
             this.servicingOrder = true;
 
             await bot.waitForTicks(20);
+
+            if (global.config.netheriteTpaEnabled === true) {
+                while (!await this.acquireNetherite(global.config.netheriteCount)) {
+                    console.log("waiting for netherite restock");
+                }
+            }
 
             for (const kitId of this.currentOrder.kitIds) {
                 if (!await this.acquireKit(kitId)) {
