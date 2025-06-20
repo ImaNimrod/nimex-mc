@@ -12,7 +12,12 @@ const DeliveryBot = require("./deliveryBot");
         process.exit(1);
     }
 
-    global.config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    try {
+        global.config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    } catch (e) {
+        console.error(e);
+        process.exit(1);
+    }
 
     const discordClient = new Client({
         intents: [
