@@ -7,5 +7,9 @@
     "minecraftPassword": "MINECRAFT_PASSWORD",
     "mongodbUri": "MONGO_DB_CONNECTION_URI",
     "netheriteCount": 3,
-    "netheriteTpaEnabled": true
+    "netheriteTpaEnabled": true,
+    "orderBulkInviteRequirement": 2,
+    "orderBulkKitCount": 20,
+    "orderBulkKitId": "KIT_ID",
+    "orderCooldownMins": 30
 }

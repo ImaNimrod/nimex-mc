@@ -291,9 +291,10 @@ class DeliveryBot extends EventEmitter {
                 this.currentOrder.canceled = true;
                 await this.currentOrder.save();
 
+                this.reset();
+
                 await this.dropInventory();
                 this.emit("orderCanceled");
-                this.reset();
                 return;
             }
 

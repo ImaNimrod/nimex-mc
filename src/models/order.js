@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema({
     kitIds: { type: [String], required: true },
     delivered: { type: Boolean, default: false, required: true },
     canceled: { type: Boolean, default: false, required: true },
+    bulk: { type: Boolean, default: false, required: true },
     createdAt: { type: Date, default: Date.now(), required: true },
     deliveredAt: { type: Date },
 });

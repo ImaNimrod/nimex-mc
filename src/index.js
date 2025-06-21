@@ -22,6 +22,7 @@ const DeliveryBot = require("./deliveryBot");
     const discordClient = new Client({
         intents: [
             IntentsBitField.Flags.Guilds,
+            IntentsBitField.Flags.GuildInvites,
             IntentsBitField.Flags.GuildMembers,
             IntentsBitField.Flags.GuildMessages,
             IntentsBitField.Flags.MessageContent,

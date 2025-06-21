@@ -38,11 +38,21 @@ module.exports = {
             minecraftUsername = link.minecraftUsername;
         }
 
-        const pendingOrders = await Order.find({ discordGuildId: interaction.guild.id, delivered: false, canceled: false }).sort({ createdAt: 1 });
-        for (const order of pendingOrders) {
-            if (order.minecraftUsername == minecraftUsername) {
+        const pendingOrder = await Order.findOne({ discordGuidId: interaction.guild.id, minecraftUsername: minecraftUsername, delivered: false, canceled: false });
+        if (pendingOrder) {
+            return await interaction.reply({
+                content: `There is already an order pending for **${minecraftUsername}**. Please wait for that order to completed.`,
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        const mostRecentOrder = await Order.findOne({ discordGuildId: interaction.guild.id, discordUsername: interaction.user.username, delivered: true }).sort({ deliveredAt: -1 });
+        if (mostRecentOrder) {
+            const diff = Date.now() - mostRecentOrder.deliveredAt;
+
+            if (diff < (global.config.orderCooldownMins * 60 * 1000)) {
                 return await interaction.reply({
-                    content: `There is already an order pending for **${order.minecraftUsername}**. Please wait for that order to completed.`,
+                    content: `You are on cooldown, please wait for another **${Math.round(global.config.orderCooldownMins - (diff / (1000 * 60)))}** minutes.`,
                     flags: MessageFlags.Ephemeral,
                 });
             }
