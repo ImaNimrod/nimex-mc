@@ -10,6 +10,7 @@ class DeliveryBot extends EventEmitter {
     bot = null;
     initialized = false;
     stashChests = null;
+    kitCache = [];
 
     currentOrder = null;
     servicingOrder = false;
@@ -17,6 +18,34 @@ class DeliveryBot extends EventEmitter {
     tpaFails = 0;
 
     async acquireKit(kitId) {
+        let entry;
+        let i;
+
+        for (i = 0; i < this.kitCache.length; i++) {
+            entry = this.kitCache[i];
+            if (entry.id === kitId) {
+                break;
+            }
+        }
+
+        if (entry) {
+            const openedChest = await this.bot.openContainer(this.bot.world.getBlock(entry.chest));
+            for (const item of openedChest.containerItems()) {
+                if (!item.name.includes("shulker_box") || !item.customName) {
+                    continue;
+                }
+
+                if (item.customName.includes(kitId)) {
+                    await openedChest.withdraw(item.type, null, null, item.nbt);
+                    openedChest.close();
+                    return true;
+                }
+            }
+
+            openedChest.close();
+            this.kitCache.splice(i, 1);
+        }
+
         for (const chest of this.stashChests) {
             const openedChest = await this.bot.openContainer(this.bot.world.getBlock(chest));
 
@@ -28,6 +57,7 @@ class DeliveryBot extends EventEmitter {
                 if (item.customName.includes(kitId)) {
                     await openedChest.withdraw(item.type, null, null, item.nbt);
                     openedChest.close();
+                    this.kitCache.push({ id: kitId, chest: chest });
                     return true;
                 }
             }
@@ -155,7 +185,7 @@ class DeliveryBot extends EventEmitter {
 
         bot.on("chat:tpaFail", async () => {
             if (this.currentOrder && this.servicingOrder) {
-                if (this.tpaFails++ >= 3) {
+                if (this.tpaFails++ >= 2) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
 
                     this.currentOrder.canceled = true;
@@ -186,12 +216,24 @@ class DeliveryBot extends EventEmitter {
             this.emit("orderDelivered");
 
             await bot.waitForTicks(20);
-            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order.`)
+            bot.chat(`/msg ${this.currentOrder.minecraftUsername} Please kill me to receive your order. I will automatically kill myself in 5 seconds`);
+
+            let i;
+            for (i = 5; i != 0 && this.currentOrder; i--) {
+                await bot.waitForTicks(20);
+            }
+
+            if (i == 0) {
+                if (this.currentOrder) {
+                    bot.chat(`/msg ${this.currentOrder.minecraftUsername} I'm gonna kill myself.`);
+                }
+                bot.chat("/kill");
+            }
         });
 
         bot.on("chat:tpaTimeout", async () => {
             if (this.currentOrder && this.servicingOrder) {
-                if (this.tpaFails++ >= 3) {
+                if (this.tpaFails++ >= 2) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} Your delivery has timed out due to you not accepting the tpa request. Be better.`);
 
                     this.currentOrder.canceled = true;
@@ -227,6 +269,7 @@ class DeliveryBot extends EventEmitter {
             this.bot = null;
             this.initialized = false;
             this.stashChests = null;
+            this.kitCache = [];
 
             this.start()
         });
