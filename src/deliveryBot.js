@@ -227,7 +227,7 @@ class DeliveryBot extends EventEmitter {
                 if (this.currentOrder) {
                     bot.chat(`/msg ${this.currentOrder.minecraftUsername} I'm gonna kill myself.`);
                 }
-                bot.chat("/kill");
+                bot.chat("/suicide");
             }
         });
 
